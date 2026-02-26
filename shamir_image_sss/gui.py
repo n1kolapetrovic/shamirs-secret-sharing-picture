@@ -8,12 +8,13 @@ import numpy as np
 from PIL import Image, ImageTk
 
 from .gui_compare_module import GuiCompareMixin
+from .gui_crypto_module import GuiCryptoMixin
 
 
-class ShamirCompareGUI(GuiCompareMixin, tk.Tk):
+class ShamirGUI(GuiCryptoMixin, GuiCompareMixin, tk.Tk):
     def __init__(self) -> None:
         super().__init__()
-        self.title("Shamir Secret Sharing - Compare")
+        self.title("Shamir Secret Sharing - Full")
         self.geometry("1050x740")
         self.minsize(940, 650)
 
@@ -24,6 +25,13 @@ class ShamirCompareGUI(GuiCompareMixin, tk.Tk):
         self._accent = "#0F766E"
         self._accent_hover = "#0D675F"
         self._ghost = "#D8E7F2"
+
+        self.encrypt_image_path: Path | None = None
+        self.encrypt_image: np.ndarray | None = None
+        self.generated_shares: list[tuple[int, np.ndarray]] = []
+
+        self.decrypt_share_paths: list[str] = []
+        self.reconstructed_image: np.ndarray | None = None
 
         self.compare_image_a: np.ndarray | None = None
         self.compare_image_b: np.ndarray | None = None
@@ -105,6 +113,26 @@ class ShamirCompareGUI(GuiCompareMixin, tk.Tk):
             background=[("pressed", "#C9DCEB"), ("active", "#CFE1EE")],
         )
 
+        style.configure(
+            "TNotebook",
+            background=self._bg,
+            borderwidth=0,
+            tabmargins=(0, 6, 0, 0),
+        )
+        style.configure(
+            "TNotebook.Tab",
+            background="#D6E1EA",
+            foreground="#2B4C65",
+            padding=(14, 8),
+            font=("Segoe UI Semibold", 10),
+            borderwidth=0,
+        )
+        style.map(
+            "TNotebook.Tab",
+            background=[("selected", self._card), ("active", "#E2EAF1")],
+            foreground=[("selected", "#17354E")],
+        )
+
         style.configure("Image.TLabel", background=self._card, foreground=self._text_soft, anchor="center")
         style.configure("TEntry", fieldbackground="#FFFFFF")
 
@@ -115,15 +143,26 @@ class ShamirCompareGUI(GuiCompareMixin, tk.Tk):
         header = ttk.Frame(root, style="Card.TFrame", padding=(16, 12))
         header.pack(fill=tk.X, pady=(0, 10))
 
-        ttk.Label(header, text="Shamir Secret Sharing - Compare", style="Header.TLabel").pack(anchor=tk.W)
+        ttk.Label(header, text="Shamir Secret Sharing - Full GUI", style="Header.TLabel").pack(anchor=tk.W)
         ttk.Label(
             header,
-            text="Poredjenje dve slike i izracunavanje MSE/PSNR.",
+            text="Enkripcija, dekripcija i poredjenje u jednom prozoru.",
             style="Subheader.TLabel",
         ).pack(anchor=tk.W, pady=(4, 0))
 
-        self.compare_tab = ttk.Frame(root, padding=12)
-        self.compare_tab.pack(fill=tk.BOTH, expand=True)
+        notebook = ttk.Notebook(root)
+        notebook.pack(fill=tk.BOTH, expand=True)
+
+        self.encrypt_tab = ttk.Frame(notebook, padding=12)
+        self.decrypt_tab = ttk.Frame(notebook, padding=12)
+        self.compare_tab = ttk.Frame(notebook, padding=12)
+
+        notebook.add(self.encrypt_tab, text="1) Enkripcija")
+        notebook.add(self.decrypt_tab, text="2) Dekripcija")
+        notebook.add(self.compare_tab, text="3) Compare")
+
+        self._build_encrypt_tab()
+        self._build_decrypt_tab()
         self._build_compare_tab()
 
         log_frame = ttk.LabelFrame(root, text="Status", padding=8, style="Section.TLabelframe")
@@ -160,7 +199,13 @@ class ShamirCompareGUI(GuiCompareMixin, tk.Tk):
         )
 
 
-def run_compare_gui() -> None:
-    app = ShamirCompareGUI()
+ShamirCompareGUI = ShamirGUI
+
+
+def run_gui() -> None:
+    app = ShamirGUI()
     app.mainloop()
 
+
+def run_compare_gui() -> None:
+    run_gui()
