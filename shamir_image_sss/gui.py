@@ -150,12 +150,7 @@ class ShamirGUI(GuiCryptoMixin, GuiCompareMixin, tk.Tk):
         header = ttk.Frame(root, style="Card.TFrame", padding=(16, 12))
         header.grid(row=0, column=0, sticky="ew", pady=(0, 10))
 
-        ttk.Label(header, text="Shamir Secret Sharing - Full GUI", style="Header.TLabel").pack(anchor=tk.W)
-        ttk.Label(
-            header,
-            text="Enkripcija, dekripcija i poredjenje u jednom prozoru.",
-            style="Subheader.TLabel",
-        ).pack(anchor=tk.W, pady=(4, 0))
+        ttk.Label(header, text="Shamir Secret Sharing", style="Header.TLabel").pack(anchor=tk.W)
 
         notebook = ttk.Notebook(root)
         notebook.grid(row=1, column=0, sticky="nsew")
