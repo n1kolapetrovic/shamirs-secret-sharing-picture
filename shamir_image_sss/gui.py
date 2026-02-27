@@ -15,8 +15,12 @@ class ShamirGUI(GuiCryptoMixin, GuiCompareMixin, tk.Tk):
     def __init__(self) -> None:
         super().__init__()
         self.title("Shamir Secret Sharing - Full")
-        self.geometry("1050x740")
-        self.minsize(940, 650)
+        screen_w = self.winfo_screenwidth()
+        screen_h = self.winfo_screenheight()
+        start_w = min(1050, max(760, screen_w - 80))
+        start_h = min(740, max(520, screen_h - 120))
+        self.geometry(f"{start_w}x{start_h}")
+        self.minsize(640, 420)
 
         self._bg = "#EAF0F5"
         self._card = "#FFFFFF"
@@ -139,9 +143,12 @@ class ShamirGUI(GuiCryptoMixin, GuiCompareMixin, tk.Tk):
     def _build_layout(self) -> None:
         root = ttk.Frame(self, style="App.TFrame", padding=(14, 14, 14, 10))
         root.pack(fill=tk.BOTH, expand=True)
+        root.columnconfigure(0, weight=1)
+        root.rowconfigure(1, weight=1)
+        root.rowconfigure(2, weight=0, minsize=120)
 
         header = ttk.Frame(root, style="Card.TFrame", padding=(16, 12))
-        header.pack(fill=tk.X, pady=(0, 10))
+        header.grid(row=0, column=0, sticky="ew", pady=(0, 10))
 
         ttk.Label(header, text="Shamir Secret Sharing - Full GUI", style="Header.TLabel").pack(anchor=tk.W)
         ttk.Label(
@@ -151,22 +158,18 @@ class ShamirGUI(GuiCryptoMixin, GuiCompareMixin, tk.Tk):
         ).pack(anchor=tk.W, pady=(4, 0))
 
         notebook = ttk.Notebook(root)
-        notebook.pack(fill=tk.BOTH, expand=True)
+        notebook.grid(row=1, column=0, sticky="nsew")
 
-        self.encrypt_tab = ttk.Frame(notebook, padding=12)
-        self.decrypt_tab = ttk.Frame(notebook, padding=12)
-        self.compare_tab = ttk.Frame(notebook, padding=12)
-
-        notebook.add(self.encrypt_tab, text="1) Enkripcija")
-        notebook.add(self.decrypt_tab, text="2) Dekripcija")
-        notebook.add(self.compare_tab, text="3) Compare")
+        self.encrypt_tab = self._create_scrollable_tab(notebook, "1) Enkripcija")
+        self.decrypt_tab = self._create_scrollable_tab(notebook, "2) Dekripcija")
+        self.compare_tab = self._create_scrollable_tab(notebook, "3) Compare")
 
         self._build_encrypt_tab()
         self._build_decrypt_tab()
         self._build_compare_tab()
 
         log_frame = ttk.LabelFrame(root, text="Status", padding=8, style="Section.TLabelframe")
-        log_frame.pack(fill=tk.BOTH, pady=(10, 0))
+        log_frame.grid(row=2, column=0, sticky="nsew", pady=(10, 0))
         self.log_text = tk.Text(log_frame, height=8, wrap=tk.WORD)
         self.log_text.pack(fill=tk.BOTH, expand=True)
         self.log_text.configure(
@@ -178,6 +181,49 @@ class ShamirGUI(GuiCryptoMixin, GuiCompareMixin, tk.Tk):
             pady=8,
             insertbackground=self._text_main,
         )
+
+    def _create_scrollable_tab(self, notebook: ttk.Notebook, title: str) -> ttk.Frame:
+        tab_outer = ttk.Frame(notebook, style="App.TFrame")
+        notebook.add(tab_outer, text=title)
+
+        canvas = tk.Canvas(
+            tab_outer,
+            bg=self._bg,
+            highlightthickness=0,
+            borderwidth=0,
+        )
+        scrollbar = ttk.Scrollbar(tab_outer, orient=tk.VERTICAL, command=canvas.yview)
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        content = ttk.Frame(canvas, style="App.TFrame", padding=12)
+        window_id = canvas.create_window((0, 0), window=content, anchor="nw")
+
+        def on_content_configure(_event: tk.Event) -> None:
+            canvas.configure(scrollregion=canvas.bbox("all"))
+
+        def on_canvas_configure(event: tk.Event) -> None:
+            canvas.itemconfigure(window_id, width=event.width)
+
+        def on_mousewheel(event: tk.Event) -> None:
+            delta = int(-1 * (event.delta / 120))
+            if delta != 0:
+                canvas.yview_scroll(delta, "units")
+
+        def bind_mousewheel(_event: tk.Event) -> None:
+            canvas.bind_all("<MouseWheel>", on_mousewheel)
+
+        def unbind_mousewheel(_event: tk.Event) -> None:
+            canvas.unbind_all("<MouseWheel>")
+
+        content.bind("<Configure>", on_content_configure)
+        canvas.bind("<Configure>", on_canvas_configure)
+        canvas.bind("<Enter>", bind_mousewheel)
+        canvas.bind("<Leave>", unbind_mousewheel)
+
+        return content
 
     def _log(self, message: str) -> None:
         self.log_text.configure(state=tk.NORMAL)
